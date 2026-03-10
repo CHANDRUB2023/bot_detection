@@ -63,7 +63,7 @@ FEATURES = ['followers_count','friends_count','statuses_count','favourites_count
             'listed_count','default_profile','default_profile_image','geo_enabled',
             'verified','account_age_days','followers_friends_ratio','tweets_per_day']
 
-# ── ALL 6 ALGORITHMS — used in comparison charts only ─────
+# ── ALL  ALGORITHMS — used in comparison charts only ─────
 ALGO_MAP = {
     '📈 Gradient Boosting': {'cls':GradientBoostingClassifier,'params':{'n_estimators':200,'learning_rate':0.05,'max_depth':5,'random_state':42},'scaled':False,'desc':'Sequential trees — Rank 1 Best Model','color':'#F59E0B'},
     '🌲 Random Forest':     {'cls':RandomForestClassifier,    'params':{'n_estimators':150,'random_state':42,'n_jobs':-1},                       'scaled':False,'desc':'150 Decision Trees voting together', 'color':'#10B981'},
@@ -163,7 +163,7 @@ elif page=="📊 Train Model":
             <span class="live-badge">● LIVE</span>
         </div>
         <div style="font-size:0.85rem;color:#555;margin-bottom:14px;">
-            Automatically selected from all 6 algorithms based on highest accuracy score.
+            Automatically selected from 2 algorithms based on highest accuracy score.
         </div>
         <div style="display:flex;gap:20px;flex-wrap:wrap;">
             <div style="background:white;border:2px solid #F59E0B;border-radius:10px;padding:12px 24px;text-align:center;">
@@ -237,8 +237,8 @@ elif page=="📊 Train Model":
 
     st.markdown("<br>",unsafe_allow_html=True)
 
-    # ── ALL 6 COMPARISON CHARTS — kept as requested ───────
-    st.markdown('<div class="section-header">📊 All 6 Algorithms — Full Accuracy Comparison</div>',unsafe_allow_html=True)
+    # ── ALL 2 COMPARISON CHARTS — kept as requested ───────
+    st.markdown('<div class="section-header">📊 All  2 Algorithms — Full Accuracy Comparison</div>',unsafe_allow_html=True)
     st.caption("ℹ️ Complete comparison of all algorithms — Top 2 highlighted in color")
     ns=sorted(all_results.keys(),key=lambda x:-all_results[x]['acc'])
     vals=[all_results[n]['acc']*100 for n in ns]
@@ -248,7 +248,7 @@ elif page=="📊 Train Model":
     fig.patch.set_facecolor('#F8FAFF'); ax.set_facecolor('#F8FAFF')
     bars=ax.bar(lbls,vals,color=clrs,edgecolor='white',linewidth=1.8,zorder=3,width=0.6)
     ax.set_ylim(60,112); ax.set_ylabel('Accuracy (%)',fontsize=11,color='#1a1a2e')
-    ax.set_title('All 6 Algorithms — Accuracy Comparison (Top 2 Highlighted)',fontsize=12,fontweight='bold',color='#1a1a2e')
+    ax.set_title('All 2 Algorithms — Accuracy Comparison (Top 2 Highlighted)',fontsize=12,fontweight='bold',color='#1a1a2e')
     ax.tick_params(axis='x',rotation=15,colors='#1a1a2e'); ax.tick_params(axis='y',colors='#1a1a2e')
     ax.grid(axis='y',alpha=0.25,zorder=0)
     for bar,val,nm in zip(bars,vals,ns):
@@ -260,7 +260,7 @@ elif page=="📊 Train Model":
     plt.tight_layout(); st.pyplot(fig); plt.close()
 
     # FULL METRICS ALL 6
-    st.markdown('<div class="section-header">📈 Full Metrics — All 6 Algorithms</div>',unsafe_allow_html=True)
+    st.markdown('<div class="section-header">📈 Full Metrics — All 2  Algorithms</div>',unsafe_allow_html=True)
     met=['acc','auc','f1','prec','rec']; mlbls=['Accuracy','AUC-ROC','F1','Precision','Recall']
     x=np.arange(len(all_results)); w=0.15
     fig,ax=plt.subplots(figsize=(14,5))
@@ -271,7 +271,7 @@ elif page=="📊 Train Model":
         ax.bar(x+i*w,vm,w,label=ml,color=pal[i],alpha=0.85,edgecolor='white',linewidth=0.8)
     ax.set_xticks(x+w*2); ax.set_xticklabels([n.split(' ',1)[1] for n in all_results],rotation=15,ha='right',color='#1a1a2e',fontsize=9)
     ax.set_ylim(0.5,1.12); ax.set_ylabel('Score',color='#1a1a2e')
-    ax.set_title('All Metrics — All 6 Algorithms',fontweight='bold',color='#1a1a2e')
+    ax.set_title('All Metrics — All 2  Algorithms',fontweight='bold',color='#1a1a2e')
     ax.legend(loc='lower right',fontsize=9); ax.tick_params(colors='#1a1a2e'); ax.grid(axis='y',alpha=0.2)
     plt.tight_layout(); st.pyplot(fig); plt.close()
 

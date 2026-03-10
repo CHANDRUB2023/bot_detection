@@ -534,36 +534,78 @@ elif page=="📈 Model Analysis":
     human_data = df[df['account_type']==0][selected_feat]
     bot_data   = df[df['account_type']==1][selected_feat]
 
-    # Histogram
-    axes[0].hist(human_data, bins=30, alpha=0.6, color='#11998e', label='Human 👤', edgecolor='white')
-    axes[0].hist(bot_data,   bins=30, alpha=0.6, color='#ff416c', label='Bot 🤖',   edgecolor='white')
-    axes[0].set_title(f'{selected_feat} — Distribution', fontweight='bold', fontsize=12, color='#1a1a2e', pad=10)
-    axes[0].set_xlabel(selected_feat,   fontsize=11, color='#1a1a2e', labelpad=8)
-    axes[0].set_ylabel('Frequency',     fontsize=11, color='#1a1a2e', labelpad=8)
-    combined_max = max(human_data.max(), bot_data.max())
-    combined_min = min(human_data.min(), bot_data.min())
-    # xlim and ylim
-    axes[0].set_xlim(combined_min * 0.95, combined_max * 1.05)
-    axes[0].set_ylim(0, None)
-    axes[0].tick_params(axis='both', colors='#1a1a2e', labelsize=9)
-    axes[0].legend(fontsize=10, frameon=True, framealpha=0.85, loc='upper right')
-    axes[0].grid(axis='y', alpha=0.25, linestyle='--', color='#aaa')
+    # Use 95th percentile for xlim/ylim — removes outlier stretching problem
+    q05 = df[selected_feat].quantile(0.05)
+    q95 = df[selected_feat].quantile(0.95)
+    x_min = max(0, q05 * 0.9) if q05 >= 0 else q05 * 1.1
+    x_max = q95 * 1.15
 
-    # Boxplot
+    # ── HISTOGRAM ────────────────────────────────────────
+    axes[0].hist(human_data, bins=40, alpha=0.65, color='#11998e',
+                 label='Human 👤', edgecolor='white', linewidth=0.5)
+    axes[0].hist(bot_data,   bins=40, alpha=0.65, color='#ff416c',
+                 label='Bot 🤖',   edgecolor='white', linewidth=0.5)
+
+    # plt.xlim() — focus on 95th percentile, avoids long empty tail
+    axes[0].set_xlim(x_min, x_max)
+    # plt.ylim() — auto with 20% headroom for labels
+    axes[0].set_ylim(0, axes[0].get_ylim()[1] * 1.2)
+
+    # Axis modification
+    axes[0].set_title(f'{selected_feat} — Distribution',
+                      fontweight='bold', fontsize=12, color='#1a1a2e', pad=10)
+    axes[0].set_xlabel(f'{selected_feat}  (up to 95th percentile)',
+                       fontsize=10, color='#1a1a2e', labelpad=8)
+    axes[0].set_ylabel('Frequency (No. of Accounts)',
+                       fontsize=10, color='#1a1a2e', labelpad=8)
+    axes[0].tick_params(axis='both', colors='#1a1a2e', labelsize=9)
+    axes[0].grid(axis='y', alpha=0.25, linestyle='--', color='#aaa')
+    axes[0].spines['top'].set_visible(False)
+    axes[0].spines['right'].set_visible(False)
+
+    # plt.legend()
+    axes[0].legend(
+        fontsize=10, frameon=True, framealpha=0.85,
+        loc='upper right',
+        title='Account Type', title_fontsize=9,
+        edgecolor='#ccc'
+    )
+
+    # ── BOXPLOT ──────────────────────────────────────────
     sns.boxplot(data=df, x='account_type', y=selected_feat,
                 palette=['#11998e', '#ff416c'], ax=axes[1],
-                linewidth=1.5, fliersize=3)
-    axes[1].set_xticklabels(['Human 👤', 'Bot 🤖'], fontsize=11, color='#1a1a2e')
-    axes[1].set_title(f'{selected_feat} — Boxplot', fontweight='bold', fontsize=12, color='#1a1a2e', pad=10)
-    axes[1].set_xlabel('Account Type', fontsize=11, color='#1a1a2e', labelpad=8)
-    axes[1].set_ylabel(selected_feat,  fontsize=11, color='#1a1a2e', labelpad=8)
-    # xlim and ylim
+                linewidth=1.5, fliersize=2,
+                flierprops=dict(alpha=0.3, marker='o'))
+
+    # plt.xlim()
     axes[1].set_xlim(-0.6, 1.6)
+    # plt.ylim() — clamp to 95th percentile so boxes are not squished at bottom
+    axes[1].set_ylim(x_min, x_max)
+
+    # Axis modification
+    axes[1].set_xticklabels(['Human 👤', 'Bot 🤖'], fontsize=11, color='#1a1a2e')
+    axes[1].set_title(f'{selected_feat} — Boxplot by Class',
+                      fontweight='bold', fontsize=12, color='#1a1a2e', pad=10)
+    axes[1].set_xlabel('Account Type', fontsize=11, color='#1a1a2e', labelpad=8)
+    axes[1].set_ylabel(f'{selected_feat} Value',
+                       fontsize=11, color='#1a1a2e', labelpad=8)
     axes[1].tick_params(axis='both', colors='#1a1a2e', labelsize=9)
     axes[1].grid(axis='y', alpha=0.25, linestyle='--', color='#aaa')
+    axes[1].spines['top'].set_visible(False)
+    axes[1].spines['right'].set_visible(False)
+
+    # plt.legend()
     from matplotlib.patches import Patch
-    legend_elements = [Patch(facecolor='#11998e', label='Human 👤'), Patch(facecolor='#ff416c', label='Bot 🤖')]
-    axes[1].legend(handles=legend_elements, loc='upper right', fontsize=9, frameon=True, framealpha=0.85)
+    legend_elements = [
+        Patch(facecolor='#11998e', label='Human 👤'),
+        Patch(facecolor='#ff416c', label='Bot 🤖')
+    ]
+    axes[1].legend(
+        handles=legend_elements, loc='upper right',
+        fontsize=9, frameon=True, framealpha=0.85,
+        title='Account Type', title_fontsize=9,
+        edgecolor='#ccc'
+    )
 
     plt.tight_layout()
     st.pyplot(fig)

@@ -46,7 +46,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-title">SocialGuard: Explainable Bot Detection on Social Media</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">SocialGuard: Explainable Bot Detection on Twitter </div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle"> | Chandru B — Bharathiar University</div>', unsafe_allow_html=True)
 st.markdown("---")
 
@@ -57,13 +57,11 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 📌 About")
     st.info("Detects whether a Twitter account is a **Bot** or **Human** using ML features like followers ratio, tweet frequency, and account metadata.")
-    
 
 FEATURES = ['followers_count','friends_count','statuses_count','favourites_count',
             'listed_count','default_profile','default_profile_image','geo_enabled',
             'verified','account_age_days','followers_friends_ratio','tweets_per_day']
 
-# ── ALL  ALGORITHMS — used in comparison charts only ─────
 ALGO_MAP = {
     '📈 Gradient Boosting': {'cls':GradientBoostingClassifier,'params':{'n_estimators':200,'learning_rate':0.05,'max_depth':5,'random_state':42},'scaled':False,'desc':'Sequential trees — Rank 1 Best Model','color':'#F59E0B'},
     '🌲 Random Forest':     {'cls':RandomForestClassifier,    'params':{'n_estimators':150,'random_state':42,'n_jobs':-1},                       'scaled':False,'desc':'150 Decision Trees voting together', 'color':'#10B981'},
@@ -117,7 +115,6 @@ def train_all_models(_df):
 df = generate_demo_data()
 all_results,scaler,X_test_raw,y_test = train_all_models(df)
 
-# ── AUTO SELECT TOP 2 BY ACCURACY ─────────────────────────
 ranked_all = sorted(all_results.keys(), key=lambda x: -all_results[x]['acc'])
 TOP2       = ranked_all[:2]
 best_model = all_results[TOP2[0]]['model']
@@ -132,28 +129,69 @@ if page=="🏠 Home":
     with c2: st.markdown(f'<div class="metric-card"><div class="metric-value">{df["account_type"].sum():,}</div><div class="metric-label">Bot Accounts</div></div>',unsafe_allow_html=True)
     with c3: st.markdown(f'<div class="metric-card"><div class="metric-value">{(df["account_type"]==0).sum():,}</div><div class="metric-label">Human Accounts</div></div>',unsafe_allow_html=True)
     with c4: st.markdown(f'<div class="metric-card"><div class="metric-value">{len(FEATURES)}</div><div class="metric-label">Features Used</div></div>',unsafe_allow_html=True)
+
     st.markdown('<div class="section-header">📋 Sample Data</div>',unsafe_allow_html=True)
     disp=df.head(10).copy(); disp['Account Type']=disp['account_type'].map({0:'👤 Human',1:'🤖 Bot'})
     st.dataframe(disp.drop(columns=['account_type']),use_container_width=True)
+
     st.markdown('<div class="section-header">🎯 Class Distribution</div>',unsafe_allow_html=True)
     col1,col2=st.columns(2)
+
+    # PIE CHART
     with col1:
-        fig,ax=plt.subplots(figsize=(4,3)); fig.patch.set_facecolor('#F8FAFF')
-        counts=df['account_type'].value_counts()
-        ax.pie(counts,labels=['Bot 🤖','Human 👤'],autopct='%1.1f%%',colors=['#ff416c','#11998e'],startangle=90,textprops={'fontsize':12})
-        ax.set_title('Bot vs Human Distribution',fontweight='bold'); st.pyplot(fig); plt.close()
+        fig, ax = plt.subplots(figsize=(4, 3))
+        fig.patch.set_facecolor('#F8FAFF')
+        counts = df['account_type'].value_counts()
+        wedges, texts, autotexts = ax.pie(
+            counts,
+            labels=['Bot 🤖', 'Human 👤'],
+            autopct='%1.1f%%',
+            colors=['#ff416c', '#11998e'],
+            startangle=90,
+            textprops={'fontsize': 12},
+            wedgeprops={'edgecolor': 'white', 'linewidth': 2}
+        )
+        for autotext in autotexts:
+            autotext.set_fontweight('bold')
+        ax.set_title('Bot vs Human Distribution', fontweight='bold', fontsize=13, color='#1a1a2e', pad=12)
+        ax.legend(wedges, ['Bot 🤖', 'Human 👤'],
+                  title="Account Type", loc="lower left",
+                  fontsize=9, title_fontsize=9, frameon=True, framealpha=0.8)
+        plt.tight_layout()
+        st.pyplot(fig)
+        plt.close()
+
+    # BAR CHART
     with col2:
-        fig,ax=plt.subplots(figsize=(4,3)); fig.patch.set_facecolor('#F8FAFF')
-        sns.countplot(data=df,x='account_type',palette=['#11998e','#ff416c'],ax=ax)
-        ax.set_xticklabels(['Human','Bot']); ax.set_title('Account Count',fontweight='bold')
-        ax.set_xlabel('Account Type'); ax.set_ylabel('Count'); st.pyplot(fig); plt.close()
+        fig, ax = plt.subplots(figsize=(4, 3))
+        fig.patch.set_facecolor('#F8FAFF')
+        ax.set_facecolor('#F8FAFF')
+        from matplotlib.patches import Patch
+        bar_colors = ['#11998e', '#ff416c']
+        counts_list = [df[df['account_type']==0].shape[0], df[df['account_type']==1].shape[0]]
+        bars = ax.bar(['Human 👤', 'Bot 🤖'], counts_list, color=bar_colors, edgecolor='white', linewidth=1.5, width=0.5)
+        ax.set_title('Account Count by Type', fontweight='bold', fontsize=13, color='#1a1a2e')
+        ax.set_xlabel('Account Type', fontsize=11, color='#1a1a2e', labelpad=8)
+        ax.set_ylabel('Number of Accounts', fontsize=11, color='#1a1a2e', labelpad=8)
+        # xlim and ylim
+        ax.set_xlim(-0.6, 1.6)
+        ax.set_ylim(0, max(counts_list) * 1.2)
+        ax.tick_params(axis='both', colors='#1a1a2e', labelsize=10)
+        ax.grid(axis='y', alpha=0.3, linestyle='--', color='#aaa')
+        legend_elements = [Patch(facecolor='#11998e', label='Human'), Patch(facecolor='#ff416c', label='Bot')]
+        ax.legend(handles=legend_elements, loc='upper right', fontsize=9, frameon=True, framealpha=0.8)
+        for bar, val in zip(bars, counts_list):
+            ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+10,
+                    f'{val:,}', ha='center', fontsize=11, fontweight='bold', color='#1a1a2e')
+        plt.tight_layout()
+        st.pyplot(fig)
+        plt.close()
 
 # ══════════════════════════════════════════════════════════
-#  TRAIN MODEL — TOP 2 IN DROPDOWN
+#  TRAIN MODEL
 # ══════════════════════════════════════════════════════════
 elif page=="📊 Train Model":
 
-    # TOP 2 BANNER
     st.markdown(f"""
     <div style="background:linear-gradient(135deg,#EEF2FF,#F0FDF4);border:2px solid #1B4FD8;
         border-radius:14px;padding:20px 28px;margin-bottom:24px;">
@@ -179,19 +217,12 @@ elif page=="📊 Train Model":
         </div>
     </div>""", unsafe_allow_html=True)
 
-    # ── DROPDOWN: TOP 2 ONLY ──────────────────────────────
-    selected_algo = st.selectbox(
-        "🔬 Select Algorithm to View Detailed Metrics:",
-        TOP2,
-        index=0
-    )
-
+    selected_algo = st.selectbox("🔬 Select Algorithm to View Detailed Metrics:", TOP2, index=0)
     r     = all_results[selected_algo]
     color = r['color']
     perf_color = '#10B981' if r['acc']>=0.90 else '#F59E0B' if r['acc']>=0.85 else '#EF4444'
     perf_label = '🏆 Excellent' if r['acc']>=0.90 else '✅ Good' if r['acc']>=0.85 else '⚠️ Average'
 
-    # LIVE METRIC CARDS
     st.markdown('<div class="section-header">⚡ Live Performance Metrics</div>',unsafe_allow_html=True)
     c1,c2,c3,c4,c5=st.columns(5)
     def mcard(col,lbl,val,sub,bc):
@@ -207,8 +238,8 @@ elif page=="📊 Train Model":
     mcard(c5,"📡 Recall",   f"{r['rec']:.4f}",      "Bot Recall",       "#EC4899")
     st.markdown("<br>",unsafe_allow_html=True)
 
-    # TOP 2 SIDE-BY-SIDE CARDS
-    st.markdown('<div class="section-header">📊 Top 2 Algorithms — Direct Comparison</div>',unsafe_allow_html=True)
+    # TOP 2 COMPARISON CARDS
+    st.markdown('<div class="section-header">📊 Best 2 Algorithms — Direct Comparison</div>',unsafe_allow_html=True)
     col1,col2=st.columns(2)
     for i,algo in enumerate(TOP2):
         rv=all_results[algo]
@@ -237,87 +268,154 @@ elif page=="📊 Train Model":
 
     st.markdown("<br>",unsafe_allow_html=True)
 
-    # ── ALL 2 COMPARISON CHARTS — kept as requested ───────
-    st.markdown('<div class="section-header">📊 All  2 Algorithms — Full Accuracy Comparison</div>',unsafe_allow_html=True)
+    # ACCURACY COMPARISON CHART
+    st.markdown('<div class="section-header">📊 All 2 Algorithms — Full Accuracy Comparison</div>',unsafe_allow_html=True)
     st.caption("ℹ️ Complete comparison of all algorithms — Top 2 highlighted in color")
-    ns=sorted(all_results.keys(),key=lambda x:-all_results[x]['acc'])
-    vals=[all_results[n]['acc']*100 for n in ns]
-    clrs=['#F59E0B' if n==TOP2[0] else '#10B981' if n==TOP2[1] else '#CBD5E1' for n in ns]
-    lbls=[n.split(' ',1)[1] for n in ns]
-    fig,ax=plt.subplots(figsize=(12,4))
-    fig.patch.set_facecolor('#F8FAFF'); ax.set_facecolor('#F8FAFF')
-    bars=ax.bar(lbls,vals,color=clrs,edgecolor='white',linewidth=1.8,zorder=3,width=0.6)
-    ax.set_ylim(60,112); ax.set_ylabel('Accuracy (%)',fontsize=11,color='#1a1a2e')
-    ax.set_title('All 2 Algorithms — Accuracy Comparison (Top 2 Highlighted)',fontsize=12,fontweight='bold',color='#1a1a2e')
-    ax.tick_params(axis='x',rotation=15,colors='#1a1a2e'); ax.tick_params(axis='y',colors='#1a1a2e')
-    ax.grid(axis='y',alpha=0.25,zorder=0)
-    for bar,val,nm in zip(bars,vals,ns):
-        ax.text(bar.get_x()+bar.get_width()/2,bar.get_height()+0.5,f'{val:.1f}%',ha='center',fontsize=10,fontweight='bold',color='#1a1a2e')
+    ns   = sorted(all_results.keys(), key=lambda x: -all_results[x]['acc'])
+    vals = [all_results[n]['acc']*100 for n in ns]
+    clrs = ['#F59E0B' if n==TOP2[0] else '#10B981' if n==TOP2[1] else '#CBD5E1' for n in ns]
+    lbls = [n.split(' ',1)[1] for n in ns]
+    fig, ax = plt.subplots(figsize=(12, 4))
+    fig.patch.set_facecolor('#F8FAFF')
+    ax.set_facecolor('#F8FAFF')
+    bars = ax.bar(lbls, vals, color=clrs, edgecolor='white', linewidth=1.8, zorder=3, width=0.6)
+    # xlim and ylim
+    ax.set_xlim(-0.6, len(ns) - 0.4)
+    ax.set_ylim(60, 115)
+    ax.set_ylabel('Accuracy (%)', fontsize=12, color='#1a1a2e', labelpad=10)
+    ax.set_xlabel('Algorithm', fontsize=12, color='#1a1a2e', labelpad=10)
+    ax.set_title('All 2 Algorithms — Accuracy Comparison (Top 2 Highlighted)',
+                 fontsize=13, fontweight='bold', color='#1a1a2e', pad=14)
+    ax.tick_params(axis='x', rotation=15, colors='#1a1a2e', labelsize=10)
+    ax.tick_params(axis='y', colors='#1a1a2e', labelsize=10)
+    ax.grid(axis='y', alpha=0.25, zorder=0, linestyle='--', color='#aaa')
+    for bar, val, nm in zip(bars, vals, ns):
+        ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+0.5,
+                f'{val:.1f}%', ha='center', fontsize=10, fontweight='bold', color='#1a1a2e')
         if nm in TOP2:
-            tag='🥇 BEST' if nm==TOP2[0] else '🥈 2ND'
-            ax.text(bar.get_x()+bar.get_width()/2,bar.get_height()+3,tag,ha='center',fontsize=8,
-                    color='#F59E0B' if nm==TOP2[0] else '#10B981',fontweight='bold')
-    plt.tight_layout(); st.pyplot(fig); plt.close()
+            tag = '🥇 BEST' if nm==TOP2[0] else '🥈 2ND'
+            ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+3, tag,
+                    ha='center', fontsize=9, color='#F59E0B' if nm==TOP2[0] else '#10B981', fontweight='bold')
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor='#F59E0B', label=f'Rank 1 — {TOP2[0].split(" ",1)[1]}'),
+        Patch(facecolor='#10B981', label=f'Rank 2 — {TOP2[1].split(" ",1)[1]}'),
+    ]
+    ax.legend(handles=legend_elements, loc='lower right', fontsize=10, frameon=True, framealpha=0.85)
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close()
 
-    # FULL METRICS ALL 6
-    st.markdown('<div class="section-header">📈 Full Metrics — All 2  Algorithms</div>',unsafe_allow_html=True)
-    met=['acc','auc','f1','prec','rec']; mlbls=['Accuracy','AUC-ROC','F1','Precision','Recall']
-    x=np.arange(len(all_results)); w=0.15
-    fig,ax=plt.subplots(figsize=(14,5))
-    fig.patch.set_facecolor('#F8FAFF'); ax.set_facecolor('#F8FAFF')
-    pal=['#1B4FD8','#10B981','#8B5CF6','#F59E0B','#EC4899']
+    # FULL METRICS CHART
+    st.markdown('<div class="section-header">📈 Full Metrics — All 2 Algorithms</div>',unsafe_allow_html=True)
+    met   = ['acc','auc','f1','prec','rec']
+    mlbls = ['Accuracy','AUC-ROC','F1 Score','Precision','Recall']
+    x     = np.arange(len(all_results))
+    w     = 0.15
+    fig, ax = plt.subplots(figsize=(14, 5))
+    fig.patch.set_facecolor('#F8FAFF')
+    ax.set_facecolor('#F8FAFF')
+    pal = ['#1B4FD8','#10B981','#8B5CF6','#F59E0B','#EC4899']
     for i,(m,ml) in enumerate(zip(met,mlbls)):
-        vm=[all_results[n][m] for n in all_results]
-        ax.bar(x+i*w,vm,w,label=ml,color=pal[i],alpha=0.85,edgecolor='white',linewidth=0.8)
-    ax.set_xticks(x+w*2); ax.set_xticklabels([n.split(' ',1)[1] for n in all_results],rotation=15,ha='right',color='#1a1a2e',fontsize=9)
-    ax.set_ylim(0.5,1.12); ax.set_ylabel('Score',color='#1a1a2e')
-    ax.set_title('All Metrics — All 2  Algorithms',fontweight='bold',color='#1a1a2e')
-    ax.legend(loc='lower right',fontsize=9); ax.tick_params(colors='#1a1a2e'); ax.grid(axis='y',alpha=0.2)
-    plt.tight_layout(); st.pyplot(fig); plt.close()
+        vm = [all_results[n][m] for n in all_results]
+        ax.bar(x+i*w, vm, w, label=ml, color=pal[i], alpha=0.85, edgecolor='white', linewidth=0.8)
+    ax.set_xticks(x+w*2)
+    ax.set_xticklabels([n.split(' ',1)[1] for n in all_results], rotation=15, ha='right', color='#1a1a2e', fontsize=10)
+    # xlim and ylim
+    ax.set_xlim(-0.3, len(all_results) - 0.2)
+    ax.set_ylim(0.50, 1.12)
+    ax.set_ylabel('Score', fontsize=12, color='#1a1a2e', labelpad=10)
+    ax.set_xlabel('Algorithm', fontsize=12, color='#1a1a2e', labelpad=10)
+    ax.set_title('All Metrics Comparison — All 2 Algorithms',
+                 fontsize=13, fontweight='bold', color='#1a1a2e', pad=12)
+    ax.legend(loc='lower right', fontsize=10, frameon=True, framealpha=0.85, title='Metrics', title_fontsize=9)
+    ax.tick_params(colors='#1a1a2e', labelsize=10)
+    ax.grid(axis='y', alpha=0.2, linestyle='--', color='#aaa')
+    ax.axhline(y=0.80, color='red', linestyle='--', linewidth=1, alpha=0.5)
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close()
 
     # CONFUSION MATRIX + ROC
     st.markdown('<div class="section-header">📊 Confusion Matrix & ROC Curve</div>',unsafe_allow_html=True)
-    col1,col2=st.columns(2)
+    col1, col2 = st.columns(2)
+
     with col1:
-        fig,ax=plt.subplots(figsize=(5,4))
-        fig.patch.set_facecolor('#F8FAFF'); ax.set_facecolor('#F8FAFF')
-        cm=confusion_matrix(y_test,r['y_pred'])
-        sns.heatmap(cm,annot=True,fmt='d',cmap='YlOrBr',ax=ax,
-                    xticklabels=['Human','Bot'],yticklabels=['Human','Bot'],linewidths=0.5)
-        ax.set_title(f'Confusion Matrix — {selected_algo}',fontweight='bold',color='#1a1a2e')
-        ax.set_ylabel('Actual',color='#1a1a2e'); ax.set_xlabel('Predicted',color='#1a1a2e')
-        st.pyplot(fig); plt.close()
+        fig, ax = plt.subplots(figsize=(5, 4))
+        fig.patch.set_facecolor('#F8FAFF')
+        ax.set_facecolor('#F8FAFF')
+        cm = confusion_matrix(y_test, r['y_pred'])
+        sns.heatmap(cm, annot=True, fmt='d', cmap='YlOrBr', ax=ax,
+                    xticklabels=['Human','Bot'], yticklabels=['Human','Bot'],
+                    linewidths=0.5, linecolor='white',
+                    annot_kws={'size': 14, 'weight': 'bold'})
+        ax.set_title(f'Confusion Matrix\n{selected_algo}',
+                     fontweight='bold', fontsize=12, color='#1a1a2e', pad=10)
+        ax.set_ylabel('Actual Label', fontsize=11, color='#1a1a2e', labelpad=8)
+        ax.set_xlabel('Predicted Label', fontsize=11, color='#1a1a2e', labelpad=8)
+        ax.tick_params(axis='both', colors='#1a1a2e', labelsize=10)
+        plt.tight_layout()
+        st.pyplot(fig)
+        plt.close()
+
     with col2:
-        fig,ax=plt.subplots(figsize=(5,4))
-        fig.patch.set_facecolor('#F8FAFF'); ax.set_facecolor('#F8FAFF')
+        fig, ax = plt.subplots(figsize=(5, 4))
+        fig.patch.set_facecolor('#F8FAFF')
+        ax.set_facecolor('#F8FAFF')
         for name in all_results:
-            fpr,tpr,_=roc_curve(y_test,all_results[name]['y_prob'])
-            lw=3 if name==selected_algo else 1
-            alp=1.0 if name in TOP2 else 0.2
-            ax.plot(fpr,tpr,color=ALGO_MAP[name]['color'],lw=lw,alpha=alp,
-                    label=f"{name.split(' ',1)[1]} ({all_results[name]['auc']:.3f})")
-        ax.plot([0,1],[0,1],'k--',lw=1,alpha=0.4)
-        ax.set_title('ROC Curves — All Algorithms',fontweight='bold',color='#1a1a2e')
-        ax.set_xlabel('False Positive Rate',color='#1a1a2e'); ax.set_ylabel('True Positive Rate',color='#1a1a2e')
-        ax.legend(fontsize=7,loc='lower right'); ax.tick_params(colors='#1a1a2e')
-        st.pyplot(fig); plt.close()
+            fpr, tpr, _ = roc_curve(y_test, all_results[name]['y_prob'])
+            lw  = 3 if name == selected_algo else 1.2
+            alp = 1.0 if name in TOP2 else 0.25
+            ax.plot(fpr, tpr, color=ALGO_MAP[name]['color'], lw=lw, alpha=alp,
+                    label=f"{name.split(' ',1)[1]} (AUC={all_results[name]['auc']:.3f})")
+        ax.plot([0,1],[0,1],'k--',lw=1,alpha=0.4, label='Random Baseline')
+        # xlim and ylim
+        ax.set_xlim(-0.02, 1.02)
+        ax.set_ylim(-0.02, 1.05)
+        ax.set_title('ROC Curves — All Algorithms', fontweight='bold', fontsize=12, color='#1a1a2e', pad=10)
+        ax.set_xlabel('False Positive Rate', fontsize=11, color='#1a1a2e', labelpad=8)
+        ax.set_ylabel('True Positive Rate', fontsize=11, color='#1a1a2e', labelpad=8)
+        ax.tick_params(axis='both', colors='#1a1a2e', labelsize=10)
+        ax.legend(fontsize=8, loc='lower right', frameon=True, framealpha=0.85, title='Algorithms')
+        ax.grid(alpha=0.2, linestyle='--', color='#aaa')
+        plt.tight_layout()
+        st.pyplot(fig)
+        plt.close()
 
     # CLASSIFICATION REPORT
     st.markdown('<div class="section-header">📋 Classification Report</div>',unsafe_allow_html=True)
-    rep=classification_report(y_test,r['y_pred'],target_names=['Human','Bot'],output_dict=True)
-    st.dataframe(pd.DataFrame(rep).transpose().round(4),use_container_width=True)
+    rep = classification_report(y_test, r['y_pred'], target_names=['Human','Bot'], output_dict=True)
+    st.dataframe(pd.DataFrame(rep).transpose().round(4), use_container_width=True)
 
     # FEATURE IMPORTANCE
     if hasattr(r['model'],'feature_importances_'):
         st.markdown('<div class="section-header">🔑 Feature Importance</div>',unsafe_allow_html=True)
-        imp=pd.Series(r['model'].feature_importances_,index=FEATURES).sort_values(ascending=True)
-        fig,ax=plt.subplots(figsize=(8,5))
-        fig.patch.set_facecolor('#F8FAFF'); ax.set_facecolor('#F8FAFF')
-        bclrs=[color if v==imp.max() else '#CBD5E1' for v in imp.values]
-        imp.plot(kind='barh',color=bclrs,ax=ax,edgecolor='white')
-        ax.set_title(f'Feature Importance — {selected_algo}',fontweight='bold',color='#1a1a2e')
-        ax.set_xlabel('Importance Score',color='#1a1a2e'); ax.tick_params(colors='#1a1a2e')
-        plt.tight_layout(); st.pyplot(fig); plt.close()
+        imp = pd.Series(r['model'].feature_importances_, index=FEATURES).sort_values(ascending=True)
+        fig, ax = plt.subplots(figsize=(9, 5))
+        fig.patch.set_facecolor('#F8FAFF')
+        ax.set_facecolor('#F8FAFF')
+        bclrs = [color if v == imp.max() else '#CBD5E1' for v in imp.values]
+        imp.plot(kind='barh', color=bclrs, ax=ax, edgecolor='white', linewidth=0.8)
+        # xlim and ylim
+        ax.set_xlim(0, imp.max() * 1.25)
+        ax.set_ylim(-0.6, len(imp) - 0.4)
+        ax.set_title(f'Feature Importance — {selected_algo}',
+                     fontweight='bold', fontsize=13, color='#1a1a2e', pad=12)
+        ax.set_xlabel('Importance Score', fontsize=11, color='#1a1a2e', labelpad=8)
+        ax.set_ylabel('Feature Name', fontsize=11, color='#1a1a2e', labelpad=8)
+        ax.tick_params(axis='both', colors='#1a1a2e', labelsize=10)
+        ax.grid(axis='x', alpha=0.25, linestyle='--', color='#aaa')
+        for i, (val, feat) in enumerate(zip(imp.values, imp.index)):
+            ax.text(val + 0.001, i, f'{val:.4f}', va='center', fontsize=8, color='#1a1a2e')
+        from matplotlib.patches import Patch
+        legend_elements = [
+            Patch(facecolor=color,     label='Top Feature'),
+            Patch(facecolor='#CBD5E1', label='Other Features'),
+        ]
+        ax.legend(handles=legend_elements, loc='lower right', fontsize=9, frameon=True, framealpha=0.85)
+        plt.tight_layout()
+        st.pyplot(fig)
+        plt.close()
 
 # ══════════════════════════════════════════════════════════
 #  PREDICT ACCOUNT
@@ -332,74 +430,147 @@ elif page=="🔍 Predict Account":
 
     col1,col2,col3=st.columns(3)
     with col1:
-        followers=st.number_input("👥 Followers Count",0,10000000,150)
-        friends=st.number_input("➡️ Following Count",0,10000000,300)
-        statuses=st.number_input("📝 Total Tweets",0,1000000,1200)
-        favourites=st.number_input("❤️ Favourites Count",0,1000000,3000)
+        followers  = st.number_input("👥 Followers Count",   0, 10000000, 150)
+        friends    = st.number_input("➡️ Following Count",   0, 10000000, 300)
+        statuses   = st.number_input("📝 Total Tweets",      0, 1000000,  1200)
+        favourites = st.number_input("❤️ Favourites Count",  0, 1000000,  3000)
     with col2:
-        listed=st.number_input("📋 Listed Count",0,10000,5)
-        account_age=st.number_input("📅 Account Age (days)",1,6000,800)
-        verified=st.selectbox("✅ Verified Account?",[0,1],format_func=lambda x:"Yes" if x else "No")
+        listed      = st.number_input("📋 Listed Count",         0, 10000, 5)
+        account_age = st.number_input("📅 Account Age (days)",   1, 6000,  800)
+        verified    = st.selectbox("✅ Verified Account?",  [0,1], format_func=lambda x:"Yes" if x else "No")
     with col3:
-        default_profile=st.selectbox("🎨 Default Profile?",[0,1],format_func=lambda x:"Yes" if x else "No")
-        default_img=st.selectbox("🖼️ Default Profile Image?",[0,1],format_func=lambda x:"Yes" if x else "No")
-        geo_enabled=st.selectbox("📍 Geo Enabled?",[0,1],format_func=lambda x:"Yes" if x else "No")
+        default_profile = st.selectbox("🎨 Default Profile?",       [0,1], format_func=lambda x:"Yes" if x else "No")
+        default_img     = st.selectbox("🖼️ Default Profile Image?", [0,1], format_func=lambda x:"Yes" if x else "No")
+        geo_enabled     = st.selectbox("📍 Geo Enabled?",           [0,1], format_func=lambda x:"Yes" if x else "No")
 
-    if st.button("🚀 Detect Account",use_container_width=True):
-        ff_ratio=followers/(friends+1); tpd=statuses/(account_age+1)
-        inp=pd.DataFrame([[followers,friends,statuses,favourites,listed,default_profile,
-                           default_img,geo_enabled,verified,account_age,ff_ratio,tpd]],columns=FEATURES)
-        pred=best_model.predict(inp)[0]; prob=best_model.predict_proba(inp)[0]
-        bot_prob=prob[1]*100; human_prob=prob[0]*100
+    if st.button("🚀 Detect Account", use_container_width=True):
+        ff_ratio = followers / (friends + 1)
+        tpd      = statuses  / (account_age + 1)
+        inp = pd.DataFrame([[followers, friends, statuses, favourites, listed,
+                             default_profile, default_img, geo_enabled, verified,
+                             account_age, ff_ratio, tpd]], columns=FEATURES)
+        pred     = best_model.predict(inp)[0]
+        prob     = best_model.predict_proba(inp)[0]
+        bot_prob   = prob[1] * 100
+        human_prob = prob[0] * 100
+
         st.markdown("---")
-        if pred==1:
-            st.markdown(f'<div class="bot-result"><h2>🤖 BOT DETECTED!</h2><h3>Bot Probability: {bot_prob:.1f}%</h3><p>This account shows strong bot-like behaviour patterns.</p></div>',unsafe_allow_html=True)
+        if pred == 1:
+            st.markdown(f'<div class="bot-result"><h2>🤖 BOT DETECTED!</h2><h3>Bot Probability: {bot_prob:.1f}%</h3><p>This account shows strong bot-like behaviour patterns.</p></div>', unsafe_allow_html=True)
         else:
-            st.markdown(f'<div class="human-result"><h2>👤 HUMAN ACCOUNT</h2><h3>Human Probability: {human_prob:.1f}%</h3><p>This account shows genuine human behaviour patterns.</p></div>',unsafe_allow_html=True)
+            st.markdown(f'<div class="human-result"><h2>👤 HUMAN ACCOUNT</h2><h3>Human Probability: {human_prob:.1f}%</h3><p>This account shows genuine human behaviour patterns.</p></div>', unsafe_allow_html=True)
+
         st.markdown("---")
-        col1,col2=st.columns(2)
+        col1, col2 = st.columns(2)
+
+        # PREDICTION PIE CHART
         with col1:
-            fig,ax=plt.subplots(figsize=(4,4)); fig.patch.set_facecolor('#F8FAFF')
-            ax.pie([bot_prob,human_prob],labels=[f'Bot\n{bot_prob:.1f}%',f'Human\n{human_prob:.1f}%'],
-                   colors=['#ff416c','#11998e'],startangle=90,textprops={'fontweight':'bold'})
-            ax.set_title('Prediction Confidence',fontweight='bold'); st.pyplot(fig); plt.close()
+            fig, ax = plt.subplots(figsize=(4, 4))
+            fig.patch.set_facecolor('#F8FAFF')
+            wedges, texts, autotexts = ax.pie(
+                [bot_prob, human_prob],
+                labels=[f'Bot\n{bot_prob:.1f}%', f'Human\n{human_prob:.1f}%'],
+                colors=['#ff416c','#11998e'],
+                startangle=90,
+                textprops={'fontweight':'bold', 'fontsize':11},
+                wedgeprops={'edgecolor':'white','linewidth':2},
+                autopct='%1.1f%%'
+            )
+            for autotext in autotexts:
+                autotext.set_fontsize(9)
+            ax.set_title('Prediction Confidence', fontweight='bold', fontsize=13, color='#1a1a2e', pad=12)
+            ax.legend(wedges, ['Bot 🤖', 'Human 👤'],
+                      title="Prediction", loc="lower left",
+                      fontsize=9, title_fontsize=9, frameon=True, framealpha=0.8)
+            plt.tight_layout()
+            st.pyplot(fig)
+            plt.close()
+
         with col2:
-            st.markdown('<p style="color:#1a1a2e;font-size:17px;font-weight:bold;">📊 Key Risk Indicators:</p>',unsafe_allow_html=True)
-            for lbl,val,risky in [
-                ("👥 Followers/Following Ratio",f"{ff_ratio:.3f}",ff_ratio<0.1),
-                ("🐦 Tweets per Day",f"{tpd:.1f}",tpd>50),
-                ("🖼️ Default Profile Image","Yes" if default_img else "No",default_img==1),
-                ("✅ Verified Account","Yes" if verified else "No",verified==0),
-                ("📅 Account Age",f"{account_age} days",account_age<100)]:
-                bg="#FEE2E2" if risky else "#D1FAE5"; bc="#EF4444" if risky else "#10B981"
-                badge="⚠️ BOT SIGNAL" if risky else "✅ NORMAL"
-                st.markdown(f'<div style="background:{bg};border-radius:10px;padding:8px 12px;margin:6px 0;border-left:4px solid {bc};display:flex;justify-content:space-between;align-items:center;"><span style="color:#1a1a2e;font-weight:600;font-size:13px;">{lbl}</span><span style="color:#334155;font-size:13px;margin:0 8px;">{val}</span><span style="background:{bc};color:white;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;">{badge}</span></div>',unsafe_allow_html=True)
+            st.markdown('<p style="color:#1a1a2e;font-size:17px;font-weight:bold;">📊 Key Risk Indicators:</p>', unsafe_allow_html=True)
+            for lbl, val, risky in [
+                ("👥 Followers/Following Ratio", f"{ff_ratio:.3f}", ff_ratio < 0.1),
+                ("🐦 Tweets per Day",            f"{tpd:.1f}",      tpd > 50),
+                ("🖼️ Default Profile Image",    "Yes" if default_img  else "No", default_img  == 1),
+                ("✅ Verified Account",           "Yes" if verified     else "No", verified     == 0),
+                ("📅 Account Age",               f"{account_age} days", account_age < 100)]:
+                bg    = "#FEE2E2" if risky else "#D1FAE5"
+                bc    = "#EF4444" if risky else "#10B981"
+                badge = "⚠️ BOT SIGNAL" if risky else "✅ NORMAL"
+                st.markdown(f'<div style="background:{bg};border-radius:10px;padding:8px 12px;margin:6px 0;border-left:4px solid {bc};display:flex;justify-content:space-between;align-items:center;"><span style="color:#1a1a2e;font-weight:600;font-size:13px;">{lbl}</span><span style="color:#334155;font-size:13px;margin:0 8px;">{val}</span><span style="background:{bc};color:white;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;">{badge}</span></div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════
 #  MODEL ANALYSIS
 # ══════════════════════════════════════════════════════════
 elif page=="📈 Model Analysis":
-    st.markdown('<div class="section-header">📈 Feature Correlations</div>',unsafe_allow_html=True)
-    fig,ax=plt.subplots(figsize=(10,7)); fig.patch.set_facecolor('#F8FAFF'); ax.set_facecolor('#F8FAFF')
-    corr=df[FEATURES+['account_type']].corr()
-    sns.heatmap(corr,annot=True,fmt='.2f',cmap='coolwarm',center=0,linewidths=0.5,ax=ax)
-    ax.set_title('Feature Correlation Heatmap',fontweight='bold',fontsize=13,color='#1a1a2e'); st.pyplot(fig); plt.close()
 
-    st.markdown('<div class="section-header">📊 Feature Distributions by Class</div>',unsafe_allow_html=True)
-    st.markdown('<p style="color:#1a1a2e;font-size:15px;font-weight:700;margin:10px 0 4px;">🔍 Select Feature to Analyze:</p>',unsafe_allow_html=True)
-    selected_feat=st.selectbox("",FEATURES)
-    fig,axes=plt.subplots(1,2,figsize=(12,4))
-    for a in axes: a.set_facecolor('#F8FAFF')
+    # CORRELATION HEATMAP
+    st.markdown('<div class="section-header">📈 Feature Correlations</div>',unsafe_allow_html=True)
+    fig, ax = plt.subplots(figsize=(10, 7))
     fig.patch.set_facecolor('#F8FAFF')
-    df[df['account_type']==0][selected_feat].hist(bins=30,alpha=0.6,color='#11998e',label='Human',ax=axes[0])
-    df[df['account_type']==1][selected_feat].hist(bins=30,alpha=0.6,color='#ff416c',label='Bot',ax=axes[0])
-    axes[0].set_title(f'{selected_feat} Distribution',fontweight='bold',color='#1a1a2e'); axes[0].legend()
-    sns.boxplot(data=df,x='account_type',y=selected_feat,palette={'0':'#11998e','1':'#ff416c'},ax=axes[1])
-    axes[1].set_xticklabels(['Human','Bot']); axes[1].set_title(f'{selected_feat} Boxplot',fontweight='bold',color='#1a1a2e')
-    plt.tight_layout(); st.pyplot(fig); plt.close()
+    ax.set_facecolor('#F8FAFF')
+    corr = df[FEATURES + ['account_type']].corr()
+    sns.heatmap(corr, annot=True, fmt='.2f', cmap='coolwarm', center=0,
+                linewidths=0.5, linecolor='white', ax=ax,
+                annot_kws={'size': 8})
+    ax.set_title('Feature Correlation Heatmap', fontweight='bold', fontsize=14, color='#1a1a2e', pad=14)
+    ax.set_xlabel('Features', fontsize=11, color='#1a1a2e', labelpad=8)
+    ax.set_ylabel('Features', fontsize=11, color='#1a1a2e', labelpad=8)
+    ax.tick_params(axis='both', colors='#1a1a2e', labelsize=8)
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close()
+
+    # FEATURE DISTRIBUTION
+    st.markdown('<div class="section-header">📊 Feature Distributions by Class</div>',unsafe_allow_html=True)
+    st.markdown('<p style="color:#1a1a2e;font-size:15px;font-weight:700;margin:10px 0 4px;">🔍 Select Feature to Analyze:</p>', unsafe_allow_html=True)
+    selected_feat = st.selectbox("", FEATURES)
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 4))
+    for a in axes:
+        a.set_facecolor('#F8FAFF')
+    fig.patch.set_facecolor('#F8FAFF')
+
+    human_data = df[df['account_type']==0][selected_feat]
+    bot_data   = df[df['account_type']==1][selected_feat]
+
+    # Histogram
+    axes[0].hist(human_data, bins=30, alpha=0.6, color='#11998e', label='Human 👤', edgecolor='white')
+    axes[0].hist(bot_data,   bins=30, alpha=0.6, color='#ff416c', label='Bot 🤖',   edgecolor='white')
+    axes[0].set_title(f'{selected_feat} — Distribution', fontweight='bold', fontsize=12, color='#1a1a2e', pad=10)
+    axes[0].set_xlabel(selected_feat,   fontsize=11, color='#1a1a2e', labelpad=8)
+    axes[0].set_ylabel('Frequency',     fontsize=11, color='#1a1a2e', labelpad=8)
+    combined_max = max(human_data.max(), bot_data.max())
+    combined_min = min(human_data.min(), bot_data.min())
+    # xlim and ylim
+    axes[0].set_xlim(combined_min * 0.95, combined_max * 1.05)
+    axes[0].set_ylim(0, None)
+    axes[0].tick_params(axis='both', colors='#1a1a2e', labelsize=9)
+    axes[0].legend(fontsize=10, frameon=True, framealpha=0.85, loc='upper right')
+    axes[0].grid(axis='y', alpha=0.25, linestyle='--', color='#aaa')
+
+    # Boxplot
+    sns.boxplot(data=df, x='account_type', y=selected_feat,
+                palette=['#11998e', '#ff416c'], ax=axes[1],
+                linewidth=1.5, fliersize=3)
+    axes[1].set_xticklabels(['Human 👤', 'Bot 🤖'], fontsize=11, color='#1a1a2e')
+    axes[1].set_title(f'{selected_feat} — Boxplot', fontweight='bold', fontsize=12, color='#1a1a2e', pad=10)
+    axes[1].set_xlabel('Account Type', fontsize=11, color='#1a1a2e', labelpad=8)
+    axes[1].set_ylabel(selected_feat,  fontsize=11, color='#1a1a2e', labelpad=8)
+    # xlim and ylim
+    axes[1].set_xlim(-0.6, 1.6)
+    axes[1].tick_params(axis='both', colors='#1a1a2e', labelsize=9)
+    axes[1].grid(axis='y', alpha=0.25, linestyle='--', color='#aaa')
+    from matplotlib.patches import Patch
+    legend_elements = [Patch(facecolor='#11998e', label='Human 👤'), Patch(facecolor='#ff416c', label='Bot 🤖')]
+    axes[1].legend(handles=legend_elements, loc='upper right', fontsize=9, frameon=True, framealpha=0.85)
+
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close()
 
 st.markdown("---")
 st.markdown("""<center style='color:#888;font-size:0.85rem;'>
     🤖 <b>SocialGuard: </b><br/>
     Chandru B | M.Sc Artificial Intelligence | Bharathiar University |
-</center>""",unsafe_allow_html=True)
+</center>""", unsafe_allow_html=True)
